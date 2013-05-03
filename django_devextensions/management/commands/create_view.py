@@ -14,8 +14,22 @@ class {class_name}(CreateView):
     template_name = '{template_path}/{model_low}/form.html'
     
     def get_success_url(self):
-        return reverse('{app_name}-{model_low}-create')
-'''
+        return reverse('{app_name}-{model_low}-detail')
+''',
+    'uv': '''
+class {class_name}(UpdateView):
+    model={model}
+    template_name = '{template_path}/{model_low}/form.html'
+    
+    def get_success_url(self):
+        return reverse('{app_name}-{model_low}-detail')
+''',
+    'dv': '''
+class {class_name}(DetailView):
+    model={model}
+    template_name = '{template_path}/{model_low}/detail.html'
+    
+''',
 }
 
 class Command(AppCommand):
@@ -39,8 +53,12 @@ class Command(AppCommand):
             view_name = 'ListView'
         elif view_type == 'cv':
             view_name = 'CreateView'
+        elif view_type == 'uv':
+            view_name = 'UpdateView'
+        elif view_type == 'dv':
+            view_name = 'DetailView'
         else:
-            raise Exception('View type incorrect (lv, cv)')
+            raise Exception('View type incorrect (lv, cv, dv, uv)')
             
         class_name = '%s%s' % (options['model_name'], view_name)
         app_name = app.__name__.rsplit('.')[-2]
@@ -80,8 +98,8 @@ class Command(AppCommand):
                 
             content += view
             
-            print content
-            raise NotImplementedError()
+            #print content
+            #raise NotImplementedError()
         
             vf.seek(0)
             vf.write(content)
