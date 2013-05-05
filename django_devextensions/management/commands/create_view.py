@@ -1,6 +1,7 @@
 from django.core.management.base import AppCommand
 from optparse import make_option
 import os
+from django_devextensions.libs.generic_views import get_manager_by_tag
 
 SKELETONS = {
     'lv': '''
@@ -28,7 +29,6 @@ class {class_name}(UpdateView):
 class {class_name}(DetailView):
     model={model}
     template_name = '{template_path}/{model_low}/detail.html'
-    
 ''',
 }
 
@@ -48,33 +48,16 @@ class Command(AppCommand):
 
     def handle_app(self, app, **options):
         view_type = options['view_type']
-        view_name = None
-        if view_type == 'lv':
-            view_name = 'ListView'
-        elif view_type == 'cv':
-            view_name = 'CreateView'
-        elif view_type == 'uv':
-            view_name = 'UpdateView'
-        elif view_type == 'dv':
-            view_name = 'DetailView'
-        else:
-            raise Exception('View type incorrect (lv, cv, dv, uv)')
-            
-        class_name = '%s%s' % (options['model_name'], view_name)
-        app_name = app.__name__.rsplit('.')[-2]
-        app_path = app.__name__.rsplit('.', 1)[0].replace('.', '/')
-        model_low=options['model_name'].lower()
-        
-        view = SKELETONS[view_type].format(model=options['model_name'],
-            model_low=model_low,
-            class_name = class_name,
-            template_path=app_path.split('/')[-1],
-            app_name = app_name)
+        model_name = options['model_name']
+        manager = get_manager_by_tag(view_type)
+        class_name = manager.get_classname(model_name)
+        app_path = manager.get_app_path(app)
+        body = manager.get_body(app, model_name)
             
         if not os.path.exists(app_path):
             raise Exception('App folder not found: %s' % app_path)
             
-        views_path = os.path.join (app_path, 'views', model_low)
+        views_path = os.path.join (app_path, 'views', model_name.lower())
         views_file = views_path + '.py'
 
         if not os.path.exists(views_file):
@@ -86,17 +69,16 @@ class Command(AppCommand):
             content = vf.read()
             found = False
             for line in content.splitlines():
-                if (view_name in line) and ('import' in line):
+                if (manager.view_name in line) and ('import' in line):
                     found = True
                     
             if not found:
-                imp = 'from django.views.generic import %s\n' % view_name
-                content = imp + content
+                content = manager.get_generic_import() + content
                 
             if class_name in content:
                 raise Exception('A view with the name %s already exists' % class_name)
                 
-            content += view
+            content += body
             
             #print content
             #raise NotImplementedError()
