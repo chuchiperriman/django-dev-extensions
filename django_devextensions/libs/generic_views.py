@@ -31,6 +31,12 @@ class GenericViewManager (object):
     def get_app_path(self, app):
         return app.__name__.rsplit('.', 1)[0].replace('.', '/')
         
+    def get_url_name(self, app, model_name):
+        raise NotImplementedError()
+        
+    def get_url_template(self, app, model_name):
+        raise NotImplementedError()
+        
     def get_body(self, app, model_name):
         app_name = self.get_app_name(app)
         app_path = self.get_app_path(app)
@@ -50,6 +56,12 @@ class {class_name}(ListView):
     model={model}
     template_name='{template_path}/{model_low}/list.html'
 '''
+    def get_url_name(self, app, model_name):
+        return '%s-%s-list' % (self.get_app_name(app), model_name.lower())
+        
+    def get_url_template(self, app, model_name):
+        return "url(r'^$', %s.as_view(), name='%s')" % (
+            self.get_classname(model_name), self.get_url_name(app, model_name))
             
 class CreateViewManager (GenericViewManager):
     tag = 'cv'
@@ -62,6 +74,8 @@ class {class_name}(CreateView):
     def get_success_url(self):
         return reverse('{app_name}-{model_low}-detail')
 '''
+    def get_url_name(self, app, model_name):
+        return '%s-%s-create' % (self.get_app_name(app), model_name.lower())
 
 class UpdateViewManager (GenericViewManager):
     tag = 'uv'
@@ -74,6 +88,8 @@ class {class_name}(UpdateView):
     def get_success_url(self):
         return reverse('{app_name}-{model_low}-detail')
 '''
+    def get_url_name(self, app, model_name):
+        return '%s-%s-update' % (self.get_app_name(app), model_name.lower())
 
 class DetailViewManager(GenericViewManager):
     tag = 'dv'
@@ -83,4 +99,10 @@ class {class_name}(DetailView):
     model={model}
     template_name = '{template_path}/{model_low}/detail.html'
 '''
-
+    def get_url_name(self, app, model_name):
+        return '%s-%s-detail' % (self.get_app_name(app), model_name.lower())
+        
+    def get_url_template(self, app, model_name):
+        return "url(r'^(?P<pk>\d+)/$', %s.as_view(), name='%s')" % (
+            self.get_classname(model_name), self.get_url_name(app, model_name))
+        
